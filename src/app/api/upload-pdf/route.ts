@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 
+export const runtime = "nodejs";
+
 export async function POST(request: NextRequest) {
   try {
-    // Get the form data from the request
     const formData = await request.formData();
-
-    // Get the file from form data
-    const file = formData.get("file") as File;
+    const file = formData.get("file") as File | null;
 
     if (!file) {
       return NextResponse.json(
@@ -15,16 +14,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate file type
-    if (!file.type || !file.type.includes("pdf")) {
+    if (!file.type.includes("pdf")) {
       return NextResponse.json(
         { error: "Only PDF files are allowed" },
         { status: 400 }
       );
     }
 
-    // Validate file size (10MB limit)
-    const maxSize = 10 * 1024 * 1024; // 10MB
+    const maxSize = 10 * 1024 * 1024;
     if (file.size > maxSize) {
       return NextResponse.json(
         { error: "File size exceeds 10MB limit" },
@@ -32,30 +29,51 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Convert file to buffer (in memory)
-    const fileBuffer = await file.arrayBuffer();
+    const fileBuffer = Buffer.from(await file.arrayBuffer());
 
-    // Return success response with file info
+    if (fileBuffer.length === 0) {
+      return NextResponse.json({ error: "Empty file buffer" }, { status: 400 });
+    }
+
+    let extractedText = "";
+
+    try {
+      // Importação correta para evitar o erro ENOENT
+      const pdfParseModule = await import("pdf-parse/lib/pdf-parse.js");
+      const pdfParse = pdfParseModule.default;
+      const data = await pdfParse(fileBuffer);
+      extractedText = data.text
+        .replace(/\s+/g, " ")
+        .replace(/\n\s*\n/g, "\n")
+        .trim();
+    } catch (pdfError: any) {
+      console.error("PDF Parse Error:", pdfError);
+      return NextResponse.json(
+        {
+          error: "Failed to extract text from PDF",
+          details: pdfError.message || "Unknown PDF parsing error",
+        },
+        { status: 400 }
+      );
+    }
+
     return NextResponse.json({
       success: true,
-      message: "PDF uploaded successfully",
+      message: "PDF uploaded and text extracted successfully",
       file: {
         originalName: file.name,
         size: file.size,
         mimetype: file.type,
-        // Note: In a real application, you would process the PDF content here
-        // For now, we're just returning the file info
       },
-      // In a real application, you would extract text from the PDF here
-      // and process it with AI for medical report interpretation
+      extractedText: extractedText,
+      textLength: extractedText.length,
     });
-  } catch (error) {
-    console.error("Upload error:", error);
-
+  } catch (error: any) {
+    console.error("Upload Error:", error);
     return NextResponse.json(
       {
         error: "Failed to upload PDF",
-        details: error instanceof Error ? error.message : "Unknown error",
+        details: error.message || "Unknown error",
       },
       { status: 500 }
     );

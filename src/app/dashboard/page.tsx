@@ -13,6 +13,8 @@ export default function DashboardPage() {
     success: boolean;
     message: string;
     file: { originalName: string; size: number; mimetype: string };
+    extractedText: string;
+    textLength: number;
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -164,6 +166,21 @@ export default function DashboardPage() {
                   <strong>Size:</strong>{" "}
                   {(result.file.size / 1024 / 1024).toFixed(2)} MB
                 </p>
+                <p>
+                  <strong>Text extracted:</strong> {result.textLength}{" "}
+                  characters
+                </p>
+              </div>
+              {/* Show a preview of the extracted text */}
+              <div className="mt-4 text-left">
+                <h5 className="font-medium text-green-800 mb-2">
+                  Text Preview:
+                </h5>
+                <div className="bg-white p-3 rounded border text-xs text-gray-700 max-h-32 overflow-y-auto">
+                  {result.extractedText.length > 500
+                    ? `${result.extractedText.substring(0, 500)}...`
+                    : result.extractedText}
+                </div>
               </div>
             </div>
           )}
