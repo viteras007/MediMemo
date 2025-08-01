@@ -22,18 +22,20 @@ export function TopMenu() {
         {!isDashboard ? (
           <>
             <Link href="https://github.com" target="_blank">
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" className="cursor-pointer">
                 <Github className="h-4 w-4 mr-2" />
                 GitHub
               </Button>
             </Link>
 
             <Link href="/dashboard">
-              <Button size="sm">Sign Up</Button>
+              <Button size="sm" className="cursor-pointer">
+                Sign Up
+              </Button>
             </Link>
           </>
         ) : (
-          <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
+          <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center cursor-pointer">
             <User className="h-4 w-4 text-gray-600" />
           </div>
         )}
