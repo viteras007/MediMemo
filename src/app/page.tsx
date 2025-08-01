@@ -55,14 +55,20 @@ export default function Home() {
             </div>
 
             {/* Right side - Preview */}
-            <div className="w-full md:w-1/2 flex justify-center items-center flex-1 relative max-h-[700px] min-w-[50%] lg:min-w-[500px]">
+            <div className="w-full md:w-1/2 flex justify-center items-center flex-1 relative max-h-[900px] min-w-[60%] lg:min-w-[600px]">
               <div className="absolute inset-0 -bottom-4 rounded-3xl bg-black/5 blur-xl h-full"></div>
               <BlurFade delay={0.25} inView>
-                <div className="relative w-full max-w-[500px] h-full bg-gray-200 rounded-lg flex items-center justify-center">
-                  <div className="text-center text-gray-500">
-                    <h1>Medical Report Preview</h1>
-                    <p className="text-sm mt-2">AI-powered interpretation</p>
-                  </div>
+                <div className="relative w-full max-w-[900px] h-full rounded-lg overflow-hidden">
+                  <img
+                    src="/images/image-landing.png"
+                    alt="Medical Report Analysis Preview"
+                    className="w-full h-full object-contain object-center"
+                    style={{
+                      maxHeight: "900px",
+                      maxWidth: "900px",
+                      minHeight: "600px",
+                    }}
+                  />
                 </div>
               </BlurFade>
             </div>
