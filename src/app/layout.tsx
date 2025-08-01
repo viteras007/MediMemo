@@ -1,33 +1,30 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import type React from "react";
+import { JetBrains_Mono } from "next/font/google";
 import "./globals.css";
+import { Metadata } from "next";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+const mono = JetBrains_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "MediMemo - AI-Powered Medical Report Interpreter",
-  description: "Upload your medical reports and get clear, easy-to-understand explanations powered by AI.",
+  metadataBase: new URL("https://medimemo.com"),
+  title: "MediMemo - Medical Report Interpreter",
+  description:
+    "Upload your medical reports and get clear, easy-to-understand explanations in plain English. Powered by Together AI and Qwen 2.5 72B",
+  openGraph: {
+    images: "/og.png",
+  },
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        {children}
+      <head>{/* rest of your scripts go under */}</head>
+      <body className={`${mono.className} min-h-screen flex flex-col`}>
+        <main className="flex-1 flex flex-col">{children}</main>
       </body>
     </html>
   );

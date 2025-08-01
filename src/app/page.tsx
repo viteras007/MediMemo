@@ -1,89 +1,76 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { NewspaperIcon, ArrowRightIcon } from "lucide-react";
+import { TopMenu } from "@/components/TopMenu";
+import { Footer } from "@/components/Footer";
+import { BorderBeam } from "@/components/ui/BorderBeam";
+import { BlurFade } from "@/components/ui/BlurFade";
+import { NewspaperIcon } from "lucide-react";
 
-export default function LandingPage() {
+export default function Home() {
   return (
-    <div className="min-h-screen flex flex-col">
-      {/* Header */}
-      <header className="flex items-center justify-between p-6 border-b">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-sm">M</span>
-          </div>
-          <span className="text-xl font-semibold">MediMemo</span>
-        </div>
+    <>
+      <TopMenu />
 
-        <Link href="/dashboard">
-          <Button variant="outline" size="sm">
-            Sign In
-          </Button>
-        </Link>
-      </header>
+      <section className="flex-1 flex flex-col">
+        <div className="flex flex-col min-h-[80vh]">
+          {/* Main content */}
+          <div className="flex-1 flex flex-col md:flex-row max-w-4xl mx-auto items-center py-8 md:pt-0">
+            {/* Left side - Call to action */}
+            <div className="w-full md:w-1/2 max-w-[378px] flex flex-col justify-center items-center md:items-start">
+              <div className="max-w-md text-center md:text-left">
+                <div className="inline-block font-mono gap-2.5 px-2.5 py-1.5 rounded bg-gray-100 text-sm mb-5 text-gray-600">
+                  100% free & open source
+                </div>
 
-      {/* Main Content - Split Layout */}
-      <main className="flex-1 flex max-w-4xl mx-auto items-center px-5 md:px-2 py-8 md:pt-0">
-        {/* Left Side - Call to Action */}
-        <div className="w-full md:w-1/2 max-w-[400px] flex flex-col justify-center items-center md:items-start">
-          <div className="max-w-md text-center md:text-left">
-            <div className="inline-block bg-gray-100 text-gray-600 px-3 py-1 rounded-sm text-sm mb-5">
-              100% free & open source
-            </div>
+                <h1 className="text-[32px] font-bold mb-4 flex items-center justify-center md:justify-start gap-4 flex-wrap text-gray-900 font-mono leading-4">
+                  <span>Medical Report</span>
+                  <span className="inline-flex items-center">→</span>
+                  <span>Plain English</span>
+                  <br />
+                  <span>
+                    in one <span className="hidden sm:inline">minute</span>
+                  </span>
+                </h1>
 
-            {/* Main Headline */}
-            <div className="space-y-4 mb-6">
-              <h1 className="text-[32px] font-bold flex items-center justify-center md:justify-start gap-4 flex-wrap text-gray-900 font-mono leading-4">
-                <span>Medical Report</span>
-                <span className="inline-flex items-center">→</span>
-                <span>Plain English</span>
-              </h1>
-              <p className="text-xl text-gray-600">
-                Upload your medical reports and get clear, easy-to-understand
-                explanations.
-              </p>
-            </div>
+                <p className="text-base text-gray-600 mb-[30px] font-mono text-center md:text-left">
+                  Upload your medical reports and get clear, easy-to-understand
+                  <br /> explanations in plain English.
+                </p>
 
-            {/* Upload Button */}
-            <div className="flex justify-center md:justify-start">
-              <div className="flex flex-col items-center">
-                <Link href="/dashboard">
-                  <Button
-                    size="lg"
-                    className="bg-gray-900 hover:bg-gray-800 text-white h-12 px-6 cursor-pointer"
-                  >
-                    <NewspaperIcon className="mr-2" /> Upload Medical Report
-                  </Button>
-                </Link>
-                <p className="text-sm text-gray-500 mt-2">Takes 1 minute!</p>
+                <div className="relative flex flex-col items-center font-mono w-full md:w-fit">
+                  <Link href="/dashboard">
+                    <Button className="relative group flex items-center bg-gray-900 hover:bg-gray-800 text-white px-6 py-3 h-auto text-base overflow-hidden">
+                      <div className="h-[120px] w-10 bg-gradient-to-r from-white/10 via-white/50 to-white/10 absolute blur-sm -rotate-45 -left-16 group-hover:left-[150%] duration-500 delay-200" />
+                      <NewspaperIcon className="h-5 w-5 mr-2 relative" />
+                      <span className="relative">Upload Medical Report</span>
+                      <BorderBeam colorFrom="#5d5d5d" colorTo="#ffffff" />
+                    </Button>
+                  </Link>
+
+                  <p className="text-sm text-gray-500 mt-4 text-center">
+                    Takes 1 minute!
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
-        </div>
 
-        {/* Right Side - Image Placeholder */}
-        <div className="w-full md:w-1/2 flex justify-center items-center flex-1 relative max-h-[700px] min-w-[50%] lg:min-w-[500px]">
-          <div className="w-full max-w-[350px] h-full bg-gray-200 rounded-lg flex items-center justify-center">
-            <div className="text-center text-gray-500">
-              <h1>image</h1>
+            {/* Right side - Preview */}
+            <div className="w-full md:w-1/2 flex justify-center items-center flex-1 relative max-h-[700px] min-w-[50%] lg:min-w-[500px]">
+              <div className="absolute inset-0 -bottom-4 rounded-3xl bg-black/5 blur-xl h-full"></div>
+              <BlurFade delay={0.25} inView>
+                <div className="relative w-full max-w-[500px] h-full bg-gray-200 rounded-lg flex items-center justify-center">
+                  <div className="text-center text-gray-500">
+                    <h1>Medical Report Preview</h1>
+                    <p className="text-sm mt-2">AI-powered interpretation</p>
+                  </div>
+                </div>
+              </BlurFade>
             </div>
           </div>
         </div>
-      </main>
+      </section>
 
-      {/* Footer */}
-      <footer className="flex items-center justify-between p-6 border-t text-sm text-gray-500">
-        <div>Powered by Together.ai & Qwen 2.5 72B</div>
-
-        <div className="flex items-center gap-4">
-          {/* TODO: Add GitHub and LinkedIn icons here */}
-          <div className="w-6 h-6 bg-gray-200 rounded flex items-center justify-center">
-            <span className="text-xs">📁</span>
-          </div>
-          <div className="w-6 h-6 bg-gray-200 rounded flex items-center justify-center">
-            <span className="text-xs">💼</span>
-          </div>
-        </div>
-      </footer>
-    </div>
+      <Footer />
+    </>
   );
 }
