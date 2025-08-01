@@ -4,6 +4,8 @@ export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
   try {
+    console.log("=== PDF Upload Started ===");
+
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
 
@@ -38,6 +40,7 @@ export async function POST(request: NextRequest) {
     let extractedText = "";
 
     try {
+      console.log("Starting PDF parsing...");
       // Importação correta para evitar o erro ENOENT
       const pdfParseModule = await import("pdf-parse/lib/pdf-parse.js");
       const pdfParse = pdfParseModule.default;
@@ -46,6 +49,7 @@ export async function POST(request: NextRequest) {
         .replace(/\s+/g, " ")
         .replace(/\n\s*\n/g, "\n")
         .trim();
+      console.log("PDF parsing completed. Text length:", extractedText.length);
     } catch (pdfError: any) {
       console.error("PDF Parse Error:", pdfError);
       return NextResponse.json(
@@ -57,6 +61,137 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Chamar Together AI API para processar o texto
+    let analyzedData = null;
+    try {
+      console.log("Preparing to call Together AI API...");
+      console.log("API Key exists:", !!process.env.TOGETHER_API_KEY);
+      console.log(
+        "Extracted text preview:",
+        extractedText.substring(0, 200) + "..."
+      );
+
+      const response = await fetch(
+        "https://api.together.xyz/v1/chat/completions",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${process.env.TOGETHER_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "deepseek-ai/DeepSeek-R1-Distill-Llama-70B-free",
+            messages: [
+              {
+                role: "system",
+                content: `You are a highly experienced and cautious medical doctor. Your task is to interpret a patient's medical report and present the information in clear, compassionate, and accurate language.
+
+### Rules:
+- NEVER invent, assume, or guess values. Only use data explicitly present in the document.
+- If a value or section is missing, omit it. Do not fabricate.
+- Use only the patient's data. No generic advice.
+- Explain abnormalities in simple terms, using analogies only if they improve clarity.
+- Be kind, but precise. Avoid alarming language. Use "we" and "let's" to be supportive.
+- Flag urgent issues clearly, but calmly.
+- Respond ONLY with the JSON object. Do not include any other text, explanations, or formatting.`,
+              },
+              {
+                role: "user",
+                content:
+                  `Analyze the following medical report and return ONLY a valid JSON object with the exact structure specified below. DO NOT include any explanations, thoughts, or additional text. Return only the JSON.
+
+### Required JSON Structure:
+{
+  "summary": "One clear paragraph summarizing the overall health status in plain language.",
+  "normalFindings": ["Test name and value – This is within normal range and means..."],
+  "abnormalFindings": [
+    {
+      "test": "Glucose",
+      "value": "110 mg/dL",
+      "status": "High",
+      "explanation": "This is above the normal range of 70–99. Elevated fasting glucose may indicate prediabetes.",
+      "urgency": "low" // or "moderate", "high"
+    }
+  ],
+  "redFlags": [
+    "Any result that requires immediate medical attention (e.g., very high WBC, critical potassium)."
+  ],
+  "nextSteps": [
+    "Call your doctor within 24 hours.",
+    "Repeat liver function test in 2 weeks.",
+    "Avoid strenuous activity until cleared."
+  ],
+  "questionsForDoctor": [
+    "Could my medication be affecting my liver enzymes?",
+    "Should I schedule a follow-up for my cholesterol?"
+  ]
+}
+
+### Medical Report:
+${extractedText}
+              `.trim(),
+              },
+            ],
+            temperature: 0.7,
+            max_tokens: 2000,
+          }),
+        }
+      );
+
+      console.log("Together AI API Response Status:", response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Together AI API Error Response:", errorText);
+        throw new Error(
+          `Together AI API error: ${response.status} - ${errorText}`
+        );
+      }
+
+      const aiResponse = await response.json();
+      console.log("Together AI API Success Response received");
+
+      const jsonString = aiResponse.choices[0].message.content.trim();
+      console.log(
+        "AI Response content preview:",
+        jsonString.substring(0, 200) + "..."
+      );
+
+      // Remover possíveis tags de pensamento ou texto extra
+      let cleanJsonString = jsonString;
+      if (
+        cleanJsonString.startsWith("<think>") ||
+        cleanJsonString.includes("<think>")
+      ) {
+        // Tentar extrair apenas o JSON
+        const jsonMatch = cleanJsonString.match(/\{.*\}/s);
+        if (jsonMatch) {
+          cleanJsonString = jsonMatch[0];
+        }
+      }
+
+      // Tentar parsear o JSON retornado
+      try {
+        analyzedData = JSON.parse(cleanJsonString);
+        console.log("JSON parsed successfully");
+      } catch (parseError) {
+        console.error("JSON parse error:", parseError);
+        console.error("Problematic JSON string:", cleanJsonString);
+        analyzedData = {
+          error: "Failed to parse AI response as JSON",
+          rawResponse: cleanJsonString,
+        };
+      }
+    } catch (aiError: any) {
+      console.error("AI Analysis Error:", aiError);
+      analyzedData = {
+        error: "Failed to analyze with AI",
+        details: aiError.message,
+      };
+    }
+
+    console.log("=== Process Completed Successfully ===");
+
     return NextResponse.json({
       success: true,
       message: "PDF uploaded and text extracted successfully",
@@ -67,6 +202,7 @@ export async function POST(request: NextRequest) {
       },
       extractedText: extractedText,
       textLength: extractedText.length,
+      analyzedData: analyzedData,
     });
   } catch (error: any) {
     console.error("Upload Error:", error);
