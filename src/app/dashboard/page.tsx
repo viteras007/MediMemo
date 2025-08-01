@@ -102,10 +102,29 @@ export default function DashboardPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <h3 className="font-semibold text-gray-900">Upload PDF</h3>
-                  <p className="text-sm text-gray-500">
-                    Medical report or lab results
-                  </p>
+                  {file ? (
+                    <>
+                      <h3 className="font-semibold text-gray-900">
+                        {file.name}
+                      </h3>
+                      <p className="text-sm text-gray-500">
+                        (
+                        {file.size < 1024 * 1024
+                          ? `${(file.size / 1024).toFixed(1)} KB`
+                          : `${(file.size / 1024 / 1024).toFixed(1)} MB`}
+                        )
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <h3 className="font-semibold text-gray-900">
+                        Upload PDF
+                      </h3>
+                      <p className="text-sm text-gray-500">
+                        Medical report or lab results
+                      </p>
+                    </>
+                  )}
                 </div>
 
                 {/* Hidden file input */}
@@ -116,17 +135,6 @@ export default function DashboardPage() {
                   onChange={handleFileChange}
                   className="hidden"
                 />
-
-                {/* File info */}
-                {file && (
-                  <div className="flex items-center justify-center gap-2 text-sm text-gray-600">
-                    <FileText className="h-4 w-4" />
-                    <span>{file.name}</span>
-                    <span className="text-gray-400">
-                      ({(file.size / 1024 / 1024).toFixed(2)} MB)
-                    </span>
-                  </div>
-                )}
 
                 {/* Error message */}
                 {error && (
