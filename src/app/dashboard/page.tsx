@@ -91,18 +91,35 @@ export default function DashboardPage() {
 
           {/* Upload Area */}
           <Card
-            className="cursor-pointer border-2 border-dashed border-gray-300 hover:border-gray-400 transition-colors"
-            onClick={handleCardClick}
+            className={`border-2 border-dashed transition-colors ${
+              uploading
+                ? "border-gray-200 bg-gray-50 cursor-not-allowed"
+                : "border-gray-300 hover:border-gray-400 cursor-pointer"
+            }`}
+            onClick={uploading ? undefined : handleCardClick}
           >
             <CardContent className="p-8">
               <div className="text-center space-y-4">
                 {/* Medical document icon */}
                 <div className="mx-auto w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
-                  <FileText className="h-6 w-6 text-gray-600" />
+                  {uploading ? (
+                    <Upload className="h-6 w-6 text-gray-600 animate-spin" />
+                  ) : (
+                    <FileText className="h-6 w-6 text-gray-600" />
+                  )}
                 </div>
 
                 <div className="space-y-2">
-                  {file ? (
+                  {uploading ? (
+                    <>
+                      <h3 className="font-semibold text-gray-900">
+                        Analyzing...
+                      </h3>
+                      <p className="text-sm text-gray-500">
+                        Please wait while we process your report
+                      </p>
+                    </>
+                  ) : file ? (
                     <>
                       <h3 className="font-semibold text-gray-900">
                         {file.name}
@@ -169,29 +186,6 @@ export default function DashboardPage() {
               <BorderBeam colorFrom="#5d5d5d" colorTo="#ffffff" />
             </Button>
           </div>
-
-          {/* Success message for basic upload (without analysis) */}
-          {result &&
-            (!result.analyzedData || "error" in result.analyzedData) && (
-              <div className="text-center p-4 bg-green-50 rounded-lg">
-                <h4 className="font-semibold text-green-800 mb-2">
-                  Upload Successful!
-                </h4>
-                <div className="text-sm text-green-700">
-                  <p>
-                    <strong>File:</strong> {result.file.originalName}
-                  </p>
-                  <p>
-                    <strong>Size:</strong>{" "}
-                    {(result.file.size / 1024 / 1024).toFixed(2)} MB
-                  </p>
-                  <p>
-                    <strong>Text extracted:</strong> {result.textLength}{" "}
-                    characters
-                  </p>
-                </div>
-              </div>
-            )}
         </div>
       </div>
     </div>
