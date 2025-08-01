@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { BorderBeam } from "@/components/ui/BorderBeam";
-import { Search } from "lucide-react";
+import { Search, FileText } from "lucide-react";
 
 export default function DashboardPage() {
   return (
@@ -20,12 +20,12 @@ export default function DashboardPage() {
           </div>
 
           {/* Upload Area */}
-          <Card className="border-2 border-dashed border-gray-300 hover:border-gray-400 transition-colors">
+          <Card className="cursor-pointer border-2 border-dashed border-gray-300 hover:border-gray-400 transition-colors">
             <CardContent className="p-8">
               <div className="text-center space-y-4">
                 {/* Medical document icon */}
-                <div className="mx-auto w-16 h-16 bg-blue-100 rounded-lg flex items-center justify-center">
-                  <span className="text-2xl">📄</span>
+                <div className="mx-auto w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
+                  <FileText className="h-6 w-6 text-gray-600" />
                 </div>
 
                 <div className="space-y-2">
