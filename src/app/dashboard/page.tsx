@@ -7,6 +7,7 @@ import { BorderBeam } from "@/components/ui/BorderBeam";
 import { Search, FileText, Upload, AlertCircle } from "lucide-react";
 import { ResultsDisplay } from "@/components/ResultsDisplay";
 import { UploadResult } from "@/types";
+import { toast } from "sonner";
 
 export default function DashboardPage() {
   const [file, setFile] = useState<File | null>(null);
@@ -50,7 +51,13 @@ export default function DashboardPage() {
 
       setResult(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Upload failed");
+      const errorMessage = err instanceof Error ? err.message : "Upload failed";
+      setError(errorMessage);
+
+      toast.error("Failed to analyze PDF", {
+        description:
+          "We encountered an error while processing your medical report. Please try again or contact support if the problem persists.",
+      });
     } finally {
       setUploading(false);
     }
@@ -60,7 +67,6 @@ export default function DashboardPage() {
     fileInputRef.current?.click();
   };
 
-  // If we have valid results with proper analyzedData, show the results display
   if (
     result &&
     result.analyzedData &&

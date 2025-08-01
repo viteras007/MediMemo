@@ -2,6 +2,7 @@ import type React from "react";
 import { JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { Metadata } from "next";
+import { Toaster } from "@/components/ui/sonner";
 
 const mono = JetBrains_Mono({ subsets: ["latin"] });
 
@@ -25,6 +26,7 @@ export default function RootLayout({
       <head>{/* rest of your scripts go under */}</head>
       <body className={`${mono.className} min-h-screen flex flex-col`}>
         <main className="flex-1 flex flex-col">{children}</main>
+        <Toaster richColors />
       </body>
     </html>
   );
