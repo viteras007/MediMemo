@@ -1,0 +1,218 @@
+---
+alwaysApply: true
+---
+
+### _MediMemo — AI-Powered Medical Report Interpreter_
+
+#### Senior Engineering Guide for Cursor (AI Pair Programmer)
+
+> “Don’t generate what’s possible. Generate what’s necessary.”  
+> — Your Future Self, Looking Back at This Decision Log
+
+---
+
+## 🎯 1. Vision First, Code Second
+
+**Rule:** Every file, component, or API route must serve the **SLC principle**:
+
+- **Simple**: One clear action (upload → understand)
+- **Love**: Feels kind, human, calming
+- **Complete**: User walks away with clarity and next steps
+
+❌ Never build a feature “just because we can.”  
+✅ Always ask: _“Does this help the user feel less anxious and more informed?”_
+
+---
+
+## 🔍 2. Scope: What We Build (and What We Don’t)
+
+**Build Now (v1 - SLC Core):**
+
+- Clerk login
+- PDF upload (drag & drop)
+- AI-powered plain-English summary
+- Clean result page with:
+    - Summary
+    - Normal/Abnormal findings
+    - Red flags
+    - Next steps
+    - Questions for doctor
+- Share button (“Show this to your parents”)
+- Disclaimer: “Not medical advice”
+
+**Delay (v2+):**
+
+- User history of reports
+- Account settings
+- Dark mode
+- Email sharing
+- PDF download
+- Multi-language
+- Mobile app
+
+> ✅ **Focus = one flow, one outcome, zero distractions**
+
+---
+
+## 🛠️ 3. Tech Stack: Only What’s Essential
+
+||||
+|---|---|---|
+|**Frontend**|Next.js App Router|Fast, free, Vercel-native|
+|**Styling**|Tailwind + shadcn-ui|Clean, accessible, no design debt|
+|**Auth**|Clerk|Zero setup, Google/email, free tier|
+|**AI**|Together.ai (Qwen 2.5 72B)|Best for structured JSON, free tier|
+|**Cache**|Upstash Redis|Free tier, HTTP-based, no infra|
+|**Storage**|AWS S3|Free for 5GB, secure PDF storage|
+|**Safety**|Llama Guard (via Together.ai)|Free, detects harmful content|
+|**Hosting**|Vercel|Free, instant deploy, edge functions|
+
+> ✅ **No new tools unless they solve a real problem.**
+
+---
+
+## 🧠 4. AI Behavior: Tone & Output Rules
+
+The AI is not a doctor. It’s a **compassionate translator**.
+
+**Tone Rules:**
+
+- Warm, not robotic
+- Use “we” and “let’s” (“We can see your potassium is low…”)
+- Avoid scary words: use “elevated” instead of “dangerous”
+- Add simple analogies when helpful (“Think of your liver enzymes like smoke alarms…”)
+
+**Output Format:**
+
+- Always return **structured JSON** (use `response_format: json_object`)
+- Never guess. If data is missing, skip it.
+- Highlight **urgency levels**: low / moderate / high
+- Separate “normal” from “abnormal” clearly
+
+> ✅ The AI should feel like a smart, kind friend — not a search engine.
+
+---
+
+## 🗃️ 5. Data & Privacy: Assume Everything Is Sensitive
+
+**Principles:**
+
+- Never store raw medical data long-term
+- Store PDFs in S3 with private access
+- Cache processed results in Redis by **SHA-256 hash of text**, not user ID
+- Never log full PDF content
+- No analytics tracking (no GA, no Hotjar)
+
+**Disclaimers:**
+
+- Show on every result page:
+    
+    > ⚠️ _This is not medical advice. Always consult your healthcare provider._
+    
+
+---
+
+## 🧱 6. Architecture: Keep It Flat, Keep It Fast
+
+**No over-engineering.**
+
+- One API route: `POST /api/upload`
+- One page: `/dashboard`
+- No database (yet). Use Redis for ephemeral cache.
+- No user profiles. Auth only for rate limiting and safety.
+
+**Caching Strategy:**
+
+- Hash the extracted PDF text
+- If hash exists in Redis → return cached result
+- Else → process with AI → store result
+
+> ✅ Prevents abuse, saves AI cost, speeds up repeat uploads
+
+---
+
+## 🎨 7. UI/UX: Calm Over Clutter
+
+**Design Principles:**
+
+- White background, soft blues/greens
+- Clear visual hierarchy: Summary → Findings → Next Steps
+- Icons: ✅ (normal), ⚠️ (abnormal), ❗ (urgent)
+- Font: Default system (no custom web fonts for speed)
+- Responsive: Works on phone (parents, caregivers)
+
+**No:**
+
+- Animations
+- Modals
+- Tabs
+- Settings
+- Navigation menus
+
+> ✅ One page. One job. Zero confusion.
+
+---
+
+## 🧪 8. Testing & Safety
+
+**Mandatory Checks:**
+
+1. **Llama Guard** on all input (PDF text) → block unsafe content
+2. **Rate limiting** (10 requests / 10 seconds per user) via Upstash Ratelimit
+3. **Error fallback**: If AI fails, show:
+    
+    > “We couldn’t process this report. Please try again or consult your doctor.”
+    
+4. **Empty states**: No file selected? Disable submit.
+
+---
+
+## 🚀 9. Launch Criteria (When We Ship)
+
+Ship when:
+
+- User can log in → upload PDF → see clean summary in <60s
+- UI feels calm and trustworthy
+- All disclaimers are visible
+- It works on a phone
+- You’d feel safe showing it to your mom
+
+> ✅ Perfection is not the goal. **Clarity is.**
+
+---
+
+## 🔄 10. How Cursor Should Work With You
+
+**Cursor is your AI junior dev. You are the senior.**
+
+**You decide:**
+
+- What features to build
+- When to ship
+- What the tone should be
+
+**Cursor should:**
+
+- Follow this `CURSORRULES.md` as gospel
+- Ask if something is unclear
+- Never invent new features
+- Prefer simple solutions over clever ones
+- Use shadcn-ui components when possible
+- Write clean, readable code — not “smart” code
+
+> 💬 Prompt Cursor like this:  
+> “Build the upload flow using these rules. Use shadcn Button and Card. No extra features.”
+
+---
+
+## 📌 Final Note
+
+This isn’t just a tool.  
+It’s a **moment of relief** in someone’s stressful day.
+
+Every decision — from the button color to the AI tone — should serve that truth.
+
+Now go build something that matters.
+
+🩺 💙 🚀  
+— Senior Engineer, Future-Proof Thinking
