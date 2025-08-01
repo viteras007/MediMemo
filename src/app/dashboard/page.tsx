@@ -5,17 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { BorderBeam } from "@/components/ui/BorderBeam";
 import { Search, FileText, Upload, AlertCircle } from "lucide-react";
+import { ResultsDisplay } from "@/components/ResultsDisplay";
+import { UploadResult } from "@/types";
 
 export default function DashboardPage() {
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [result, setResult] = useState<{
-    success: boolean;
-    message: string;
-    file: { originalName: string; size: number; mimetype: string };
-    extractedText: string;
-    textLength: number;
-  } | null>(null);
+  const [result, setResult] = useState<UploadResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -63,6 +59,20 @@ export default function DashboardPage() {
   const handleCardClick = () => {
     fileInputRef.current?.click();
   };
+
+  // If we have valid results with proper analyzedData, show the results display
+  if (
+    result &&
+    result.analyzedData &&
+    typeof result.analyzedData === "object" &&
+    !("error" in result.analyzedData)
+  ) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8">
+        <ResultsDisplay result={result} />
+      </div>
+    );
+  }
 
   return (
     <div className="flex items-center justify-center py-8">
@@ -140,7 +150,7 @@ export default function DashboardPage() {
               {uploading ? (
                 <>
                   <Upload className="h-5 w-5 mr-2 relative animate-spin" />
-                  <span className="relative">Uploading...</span>
+                  <span className="relative">Analyzing...</span>
                 </>
               ) : (
                 <>
@@ -152,38 +162,28 @@ export default function DashboardPage() {
             </Button>
           </div>
 
-          {/* Success message */}
-          {result && (
-            <div className="text-center p-4 bg-green-50 rounded-lg">
-              <h4 className="font-semibold text-green-800 mb-2">
-                Upload Successful!
-              </h4>
-              <div className="text-sm text-green-700">
-                <p>
-                  <strong>File:</strong> {result.file.originalName}
-                </p>
-                <p>
-                  <strong>Size:</strong>{" "}
-                  {(result.file.size / 1024 / 1024).toFixed(2)} MB
-                </p>
-                <p>
-                  <strong>Text extracted:</strong> {result.textLength}{" "}
-                  characters
-                </p>
-              </div>
-              {/* Show a preview of the extracted text */}
-              <div className="mt-4 text-left">
-                <h5 className="font-medium text-green-800 mb-2">
-                  Text Preview:
-                </h5>
-                <div className="bg-white p-3 rounded border text-xs text-gray-700 max-h-32 overflow-y-auto">
-                  {result.extractedText.length > 500
-                    ? `${result.extractedText.substring(0, 500)}...`
-                    : result.extractedText}
+          {/* Success message for basic upload (without analysis) */}
+          {result &&
+            (!result.analyzedData || "error" in result.analyzedData) && (
+              <div className="text-center p-4 bg-green-50 rounded-lg">
+                <h4 className="font-semibold text-green-800 mb-2">
+                  Upload Successful!
+                </h4>
+                <div className="text-sm text-green-700">
+                  <p>
+                    <strong>File:</strong> {result.file.originalName}
+                  </p>
+                  <p>
+                    <strong>Size:</strong>{" "}
+                    {(result.file.size / 1024 / 1024).toFixed(2)} MB
+                  </p>
+                  <p>
+                    <strong>Text extracted:</strong> {result.textLength}{" "}
+                    characters
+                  </p>
                 </div>
               </div>
-            </div>
-          )}
+            )}
         </div>
       </div>
     </div>

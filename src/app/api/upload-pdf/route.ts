@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 
+// Modelo configurável - altere aqui para trocar o modelo
+const AI_MODEL = "meta-llama/Llama-3.3-70B-Instruct-Turbo-Free";
+
 export async function POST(request: NextRequest) {
   try {
     console.log("=== PDF Upload Started ===");
@@ -70,6 +73,7 @@ export async function POST(request: NextRequest) {
         "Extracted text preview:",
         extractedText.substring(0, 200) + "..."
       );
+      console.log("Using AI Model:", AI_MODEL);
 
       const response = await fetch(
         "https://api.together.xyz/v1/chat/completions",
@@ -80,7 +84,7 @@ export async function POST(request: NextRequest) {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            model: "deepseek-ai/DeepSeek-R1-Distill-Llama-70B-free",
+            model: AI_MODEL, // Usando a variável configurável
             messages: [
               {
                 role: "system",
@@ -157,8 +161,18 @@ ${extractedText}
         jsonString.substring(0, 200) + "..."
       );
 
-      // Remover possíveis tags de pensamento ou texto extra
+      // Limpar a string JSON removendo crases, tags e outros caracteres indesejados
       let cleanJsonString = jsonString;
+
+      // Remover crases markdown que envolvem o JSON
+      if (cleanJsonString.startsWith("```")) {
+        cleanJsonString = cleanJsonString.replace(
+          /^```(?:json)?\s*([\s\S]*?)\s*```$/,
+          "$1"
+        );
+      }
+
+      // Remover possíveis tags de pensamento
       if (
         cleanJsonString.startsWith("<think>") ||
         cleanJsonString.includes("<think>")
@@ -169,6 +183,9 @@ ${extractedText}
           cleanJsonString = jsonMatch[0];
         }
       }
+
+      // Trim final para garantir que não há espaços extras
+      cleanJsonString = cleanJsonString.trim();
 
       // Tentar parsear o JSON retornado
       try {
@@ -192,9 +209,10 @@ ${extractedText}
 
     console.log("=== Process Completed Successfully ===");
 
+    // Retornar a estrutura esperada pelo frontend
     return NextResponse.json({
       success: true,
-      message: "PDF uploaded and text extracted successfully",
+      message: "PDF uploaded and analyzed successfully",
       file: {
         originalName: file.name,
         size: file.size,
