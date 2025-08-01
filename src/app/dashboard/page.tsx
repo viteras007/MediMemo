@@ -1,5 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { BorderBeam } from "@/components/ui/BorderBeam";
+import { Search } from "lucide-react";
 
 export default function DashboardPage() {
   return (
@@ -36,22 +38,15 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          {/* Helper link */}
-          <div className="text-center">
-            <a
-              href="#"
-              className="text-sm text-blue-600 hover:text-blue-700 flex items-center justify-center gap-1"
-            >
-              <span className="text-xs">ℹ️</span>
-              How to upload medical reports
-            </a>
-          </div>
-
           {/* Generate button */}
-          <Button className="w-full bg-gray-800 hover:bg-gray-900 text-white">
-            <span className="mr-2">🔍</span>
-            Analyze Report
-          </Button>
+          <div className="flex justify-center">
+            <Button className="cursor-pointer relative group flex items-center bg-gray-900 hover:bg-gray-800 text-white px-6 py-3 h-auto text-base overflow-hidden">
+              <div className="h-[120px] w-10 bg-gradient-to-r from-white/10 via-white/50 to-white/10 absolute blur-sm -rotate-45 -left-16 group-hover:left-[150%] duration-500 delay-200" />
+              <Search className="h-5 w-5 mr-2 relative" />
+              <span className="relative">Analyze Report</span>
+              <BorderBeam colorFrom="#5d5d5d" colorTo="#ffffff" />
+            </Button>
+          </div>
         </div>
       </div>
     </div>
