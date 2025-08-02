@@ -4,13 +4,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Github, User } from "lucide-react";
 import { usePathname } from "next/navigation";
-import {
-  SignInButton,
-  SignUpButton,
-  UserButton,
-  SignedIn,
-  SignedOut,
-} from "@clerk/nextjs";
+import { SignUpButton, UserButton, SignedIn, SignedOut } from "@clerk/nextjs";
 
 export function TopMenu() {
   const pathname = usePathname();
@@ -36,12 +30,6 @@ export function TopMenu() {
             </Link>
 
             <SignedOut>
-              <SignInButton mode="modal">
-                <Button variant="outline" size="sm" className="cursor-pointer">
-                  Sign In
-                </Button>
-              </SignInButton>
-
               <SignUpButton mode="modal">
                 <Button size="sm" className="cursor-pointer">
                   Sign Up

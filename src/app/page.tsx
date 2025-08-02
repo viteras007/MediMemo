@@ -7,6 +7,7 @@ import { BlurFade } from "@/components/ui/BlurFade";
 import { NewspaperIcon } from "lucide-react";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
+import { SignUpButton } from "@clerk/nextjs";
 
 export default async function Home() {
   // Verificar se o usuário está autenticado
@@ -48,14 +49,14 @@ export default async function Home() {
                 </p>
 
                 <div className="relative flex flex-col items-center font-mono w-full md:w-fit">
-                  <Link href="/dashboard">
+                  <SignUpButton mode="modal">
                     <Button className="cursor-pointer relative group flex items-center bg-gray-900 hover:bg-gray-800 text-white px-6 py-3 h-auto text-base overflow-hidden">
                       <div className="h-[120px] w-10 bg-gradient-to-r from-white/10 via-white/50 to-white/10 absolute blur-sm -rotate-45 -left-16 group-hover:left-[150%] duration-500 delay-200" />
                       <NewspaperIcon className="h-5 w-5 mr-2 relative" />
-                      <span className="relative">Upload Medical Report</span>
+                      <span className="relative">Get Started</span>
                       <BorderBeam colorFrom="#5d5d5d" colorTo="#ffffff" />
                     </Button>
-                  </Link>
+                  </SignUpButton>
 
                   <p className="text-sm text-gray-500 mt-4 text-center">
                     Takes 1 minute!
