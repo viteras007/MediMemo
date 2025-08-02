@@ -3,7 +3,10 @@ import { auth } from "@clerk/nextjs/server";
 import { Ratelimit } from "@upstash/ratelimit";
 import { redis } from "../../../lib/redis";
 import { createAIProvider } from "../../../lib/ai-providers";
-import { createCacheManager, generateCacheKey } from "../../../lib/cache-manager";
+import {
+  createCacheManager,
+  generateCacheKey,
+} from "../../../lib/cache-manager";
 
 export const runtime = "nodejs";
 
@@ -120,7 +123,7 @@ export async function POST(request: NextRequest) {
     // Initialize AI provider and cache manager
     const aiProvider = createAIProvider();
     const cacheManager = createCacheManager();
-    
+
     console.log("Using AI Provider:", aiProvider.name);
     console.log("Cache enabled:", cacheManager.isEnabled());
 
