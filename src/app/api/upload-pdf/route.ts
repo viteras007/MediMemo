@@ -2,11 +2,82 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { redis, CACHE_TTL, CACHE_KEY_PREFIX } from "../../../lib/redis";
 import { sha256 } from "../../../lib/utils";
+import { Ratelimit } from "@upstash/ratelimit";
 
 export const runtime = "nodejs";
 
 // Modelo configurável - altere aqui para trocar o modelo
 const AI_MODEL = "meta-llama/Llama-3.3-70B-Instruct-Turbo-Free";
+
+// Rate limiter: 5 requests per 10 seconds per user
+const ratelimit = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(5, "10 s"),
+  analytics: true,
+});
+
+// Função para verificar se o conteúdo é seguro usando Llama Guard
+async function isContentSafe(
+  text: string
+): Promise<{ safe: boolean; reason?: string }> {
+  try {
+    // Truncar texto para 3000 caracteres para evitar tokens excessivos
+    const truncatedText = text.substring(0, 3000);
+
+    const response = await fetch(
+      "https://api.together.xyz/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.TOGETHER_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "meta-llama/Llama-Guard-3-8B",
+          messages: [
+            {
+              role: "system",
+              content:
+                "You are Llama Guard, a safety classifier. Analyze the following text and determine if it contains harmful content. Respond with 'SAFE' or 'UNSAFE' followed by a brief reason if unsafe.",
+            },
+            {
+              role: "user",
+              content: `Analyze this medical report text for safety: ${truncatedText}`,
+            },
+          ],
+          temperature: 0.1,
+          max_tokens: 100,
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      console.error("Llama Guard API error:", response.status);
+      // Fail permissively - allow content if Llama Guard fails
+      return { safe: true };
+    }
+
+    const result = await response.json();
+    const content = result.choices[0].message.content.trim().toUpperCase();
+
+    if (content.startsWith("SAFE")) {
+      console.log("Llama Guard passed");
+      return { safe: true };
+    } else if (content.startsWith("UNSAFE")) {
+      const reason = content.replace("UNSAFE", "").trim();
+      console.log("Llama Guard blocked content:", reason);
+      return { safe: false, reason };
+    } else {
+      // Unexpected response, fail permissively
+      console.log("Llama Guard unexpected response:", content);
+      return { safe: true };
+    }
+  } catch (error) {
+    console.error("Llama Guard error:", error);
+    // Fail permissively - allow content if Llama Guard fails
+    return { safe: true };
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -22,6 +93,23 @@ export async function POST(request: NextRequest) {
 
     console.log("=== PDF Upload Started ===");
     console.log("User ID:", userId);
+
+    // Rate limiting check
+    const { success, reset, remaining } = await ratelimit.limit(userId);
+
+    if (!success) {
+      console.log("Rate limited user:", userId);
+      return NextResponse.json(
+        {
+          error:
+            "Too many requests. Please wait a moment before uploading another file.",
+          retryAfter: reset,
+        },
+        { status: 429 }
+      );
+    }
+
+    console.log("Rate limit check passed. Remaining:", remaining);
 
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
@@ -65,7 +153,7 @@ export async function POST(request: NextRequest) {
       let data;
       try {
         data = await pdfParse(fileBuffer);
-      } catch (firstError) {
+      } catch {
         // Segunda tentativa: com buffer limpo
         console.log("First attempt failed, trying with cleaned buffer...");
         const cleanedBuffer = Buffer.from(fileBuffer);
@@ -121,6 +209,23 @@ export async function POST(request: NextRequest) {
     // Only call AI if we don't have cached result
     if (!cacheHit) {
       try {
+        // Content safety check with Llama Guard
+        console.log("Checking content safety with Llama Guard...");
+        const safetyCheck = await isContentSafe(extractedText);
+
+        if (!safetyCheck.safe) {
+          console.log("Content blocked by Llama Guard:", safetyCheck.reason);
+          return NextResponse.json(
+            {
+              error: "Content not allowed",
+              reason:
+                safetyCheck.reason || "Content flagged as potentially harmful",
+            },
+            { status: 400 }
+          );
+        }
+
+        console.log("Llama Guard passed - proceeding with medical analysis");
         console.log("Preparing to call Together AI API...");
         console.log("API Key exists:", !!process.env.TOGETHER_API_KEY);
         console.log(
