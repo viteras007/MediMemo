@@ -24,6 +24,9 @@ async function isContentSafe(
     // Truncar texto para 3000 caracteres para evitar tokens excessivos
     const truncatedText = text.substring(0, 3000);
 
+    console.log("Llama Guard call sent via Helicone");
+    console.log("Helicone API Key for Guard:", !!process.env.HELICONE_API_KEY);
+
     const response = await fetch(
       "https://api.together.xyz/v1/chat/completions",
       {
@@ -31,6 +34,9 @@ async function isContentSafe(
         headers: {
           Authorization: `Bearer ${process.env.TOGETHER_API_KEY}`,
           "Content-Type": "application/json",
+          "Helicone-Auth": `Bearer ${process.env.HELICONE_API_KEY}`,
+          "Helicone-Property-Model": "llama-guard",
+          "Helicone-Cache": "false",
         },
         body: JSON.stringify({
           model: "meta-llama/Llama-Guard-3-8B",
@@ -234,6 +240,11 @@ export async function POST(request: NextRequest) {
         );
         console.log("Using AI Model:", AI_MODEL);
 
+        console.log("LLM call sent via Helicone");
+        console.log("Helicone API Key exists:", !!process.env.HELICONE_API_KEY);
+        console.log("User ID for tracking:", userId);
+        console.log("Cache status:", cacheHit ? "hit" : "miss");
+
         const response = await fetch(
           "https://api.together.xyz/v1/chat/completions",
           {
@@ -241,6 +252,9 @@ export async function POST(request: NextRequest) {
             headers: {
               Authorization: `Bearer ${process.env.TOGETHER_API_KEY}`,
               "Content-Type": "application/json",
+              "Helicone-Auth": `Bearer ${process.env.HELICONE_API_KEY}`,
+              "Helicone-Property-User-Id": userId,
+              "Helicone-Cache": cacheHit ? "true" : "false",
             },
             body: JSON.stringify({
               model: AI_MODEL, // Usando a variável configurável
