@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@clerk/nextjs/server";
 
 export const runtime = "nodejs";
 
@@ -7,7 +8,18 @@ const AI_MODEL = "meta-llama/Llama-3.3-70B-Instruct-Turbo-Free";
 
 export async function POST(request: NextRequest) {
   try {
+    // Verificar autenticação
+    const { userId } = await auth();
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: "Unauthorized - Please sign in" },
+        { status: 401 }
+      );
+    }
+
     console.log("=== PDF Upload Started ===");
+    console.log("User ID:", userId);
 
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
@@ -53,12 +65,16 @@ export async function POST(request: NextRequest) {
         .replace(/\n\s*\n/g, "\n")
         .trim();
       console.log("PDF parsing completed. Text length:", extractedText.length);
-    } catch (pdfError: any) {
+    } catch (pdfError: unknown) {
       console.error("PDF Parse Error:", pdfError);
+      const errorMessage =
+        pdfError instanceof Error
+          ? pdfError.message
+          : "Unknown PDF parsing error";
       return NextResponse.json(
         {
           error: "Failed to extract text from PDF",
-          details: pdfError.message || "Unknown PDF parsing error",
+          details: errorMessage,
         },
         { status: 400 }
       );
@@ -178,7 +194,7 @@ ${extractedText}
         cleanJsonString.includes("<think>")
       ) {
         // Tentar extrair apenas o JSON
-        const jsonMatch = cleanJsonString.match(/\{.*\}/s);
+        const jsonMatch = cleanJsonString.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
           cleanJsonString = jsonMatch[0];
         }
@@ -199,11 +215,13 @@ ${extractedText}
           rawResponse: cleanJsonString,
         };
       }
-    } catch (aiError: any) {
+    } catch (aiError: unknown) {
       console.error("AI Analysis Error:", aiError);
+      const errorMessage =
+        aiError instanceof Error ? aiError.message : "Unknown AI error";
       analyzedData = {
         error: "Failed to analyze with AI",
-        details: aiError.message,
+        details: errorMessage,
       };
     }
 
@@ -222,12 +240,14 @@ ${extractedText}
       textLength: extractedText.length,
       analyzedData: analyzedData,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Upload Error:", error);
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(
       {
         error: "Failed to upload PDF",
-        details: error.message || "Unknown error",
+        details: errorMessage,
       },
       { status: 500 }
     );

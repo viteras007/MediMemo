@@ -3,6 +3,7 @@ import { JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { Metadata } from "next";
 import { Toaster } from "@/components/ui/sonner";
+import { ClerkProvider } from "@clerk/nextjs";
 
 const mono = JetBrains_Mono({ subsets: ["latin"] });
 
@@ -25,8 +26,10 @@ export default function RootLayout({
     <html lang="en">
       <head>{/* rest of your scripts go under */}</head>
       <body className={`${mono.className} min-h-screen flex flex-col`}>
-        <main className="flex-1 flex flex-col">{children}</main>
-        <Toaster richColors />
+        <ClerkProvider>
+          <main className="flex-1 flex flex-col">{children}</main>
+          <Toaster richColors />
+        </ClerkProvider>
       </body>
     </html>
   );

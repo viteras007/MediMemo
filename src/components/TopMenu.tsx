@@ -4,6 +4,13 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Github, User } from "lucide-react";
 import { usePathname } from "next/navigation";
+import {
+  SignInButton,
+  SignUpButton,
+  UserButton,
+  SignedIn,
+  SignedOut,
+} from "@clerk/nextjs";
 
 export function TopMenu() {
   const pathname = usePathname();
@@ -28,16 +35,39 @@ export function TopMenu() {
               </Button>
             </Link>
 
-            <Link href="/dashboard">
-              <Button size="sm" className="cursor-pointer">
-                Sign Up
-              </Button>
-            </Link>
+            <SignedOut>
+              <SignInButton mode="modal">
+                <Button variant="outline" size="sm" className="cursor-pointer">
+                  Sign In
+                </Button>
+              </SignInButton>
+
+              <SignUpButton mode="modal">
+                <Button size="sm" className="cursor-pointer">
+                  Sign Up
+                </Button>
+              </SignUpButton>
+            </SignedOut>
+
+            <SignedIn>
+              <Link href="/dashboard">
+                <Button size="sm" className="cursor-pointer">
+                  Dashboard
+                </Button>
+              </Link>
+            </SignedIn>
           </>
         ) : (
-          <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center cursor-pointer">
-            <User className="h-4 w-4 text-gray-600" />
-          </div>
+          <SignedIn>
+            <UserButton
+              appearance={{
+                elements: {
+                  userButtonAvatarBox: "w-8 h-8",
+                  userButtonTrigger: "focus:shadow-none",
+                },
+              }}
+            />
+          </SignedIn>
         )}
       </div>
     </header>

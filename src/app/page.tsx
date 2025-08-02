@@ -5,8 +5,18 @@ import { Footer } from "@/components/Footer";
 import { BorderBeam } from "@/components/ui/BorderBeam";
 import { BlurFade } from "@/components/ui/BlurFade";
 import { NewspaperIcon } from "lucide-react";
+import { auth } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
 
-export default function Home() {
+export default async function Home() {
+  // Verificar se o usuário está autenticado
+  const { userId } = await auth();
+
+  // Se estiver autenticado, redirecionar para o dashboard
+  if (userId) {
+    redirect("/dashboard");
+  }
+
   return (
     <>
       <TopMenu />
@@ -14,7 +24,7 @@ export default function Home() {
       <section className="flex-1 flex flex-col">
         <div className="flex flex-col min-h-[80vh]">
           {/* Main content */}
-          <div className="flex-1 flex flex-col md:flex-row max-w-4xl mx-auto items-center py-8 md:pt-0">
+          <div className="flex flex-col md:flex-row max-w-4xl mx-auto items-center py-8 md:pt-0">
             {/* Left side - Call to action */}
             <div className="w-full md:w-1/2 max-w-[378px] flex flex-col justify-center items-center md:items-start">
               <div className="max-w-md text-center md:text-left">
