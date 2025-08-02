@@ -20,6 +20,15 @@ export interface AnalyzedDataError {
   details?: string;
 }
 
+export interface PipelineInfo {
+  stage1: string;
+  stage2: string;
+  stage3: string;
+  stage4: string;
+  stage5: string;
+  cacheHit: boolean;
+}
+
 export interface UploadResult {
   success: boolean;
   message: string;
@@ -31,4 +40,5 @@ export interface UploadResult {
   extractedText: string;
   textLength: number;
   analyzedData: AnalyzedData | AnalyzedDataError;
+  pipeline?: PipelineInfo;
 }

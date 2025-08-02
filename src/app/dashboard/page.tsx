@@ -38,7 +38,7 @@ export default function DashboardPage() {
       const formData = new FormData();
       formData.append("file", file);
 
-      const response = await fetch("/api/upload-pdf", {
+      const response = await fetch("/api/analyze", {
         method: "POST",
         body: formData,
       });
