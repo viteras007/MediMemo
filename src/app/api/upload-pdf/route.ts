@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
+import { redis, CACHE_TTL, CACHE_KEY_PREFIX } from "../../../lib/redis";
+import { sha256 } from "../../../lib/utils";
 
 export const runtime = "nodejs";
 
@@ -56,55 +58,91 @@ export async function POST(request: NextRequest) {
 
     try {
       console.log("Starting PDF parsing...");
-      // Importação correta para evitar o erro ENOENT
       const pdfParseModule = await import("pdf-parse/lib/pdf-parse.js");
       const pdfParse = pdfParseModule.default;
-      const data = await pdfParse(fileBuffer);
+
+      // Primeira tentativa: parsing normal
+      let data;
+      try {
+        data = await pdfParse(fileBuffer);
+      } catch (firstError) {
+        // Segunda tentativa: com buffer limpo
+        console.log("First attempt failed, trying with cleaned buffer...");
+        const cleanedBuffer = Buffer.from(fileBuffer);
+        data = await pdfParse(cleanedBuffer);
+      }
+
       extractedText = data.text
         .replace(/\s+/g, " ")
         .replace(/\n\s*\n/g, "\n")
         .trim();
+
+      if (!extractedText || extractedText.length < 10) {
+        throw new Error("PDF appears to be empty or unreadable");
+      }
+
       console.log("PDF parsing completed. Text length:", extractedText.length);
     } catch (pdfError: unknown) {
       console.error("PDF Parse Error:", pdfError);
-      const errorMessage =
-        pdfError instanceof Error
-          ? pdfError.message
-          : "Unknown PDF parsing error";
       return NextResponse.json(
         {
-          error: "Failed to extract text from PDF",
-          details: errorMessage,
+          error:
+            "Unable to read this PDF. Please try a different file or ensure it's not password-protected.",
+          details: "PDF parsing failed",
         },
         { status: 400 }
       );
     }
 
-    // Chamar Together AI API para processar o texto
-    let analyzedData = null;
-    try {
-      console.log("Preparing to call Together AI API...");
-      console.log("API Key exists:", !!process.env.TOGETHER_API_KEY);
-      console.log(
-        "Extracted text preview:",
-        extractedText.substring(0, 200) + "..."
-      );
-      console.log("Using AI Model:", AI_MODEL);
+    // Generate cache key from PDF content hash
+    const contentHash = sha256(extractedText);
+    const cacheKey = `${CACHE_KEY_PREFIX}${contentHash}`;
 
-      const response = await fetch(
-        "https://api.together.xyz/v1/chat/completions",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${process.env.TOGETHER_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: AI_MODEL, // Usando a variável configurável
-            messages: [
-              {
-                role: "system",
-                content: `You are a highly experienced and cautious medical doctor. Your task is to interpret a patient's medical report and present the information in clear, compassionate, and accurate language.
+    console.log("Cache key generated:", cacheKey.substring(0, 20) + "...");
+
+    // Check cache for existing result
+    let analyzedData = null;
+    let cacheHit = false;
+
+    try {
+      const cachedResult = await redis.get(cacheKey);
+      if (cachedResult) {
+        console.log("Cache hit - returning cached result");
+        analyzedData = cachedResult;
+        cacheHit = true;
+      } else {
+        console.log("Cache miss - processing with AI");
+      }
+    } catch (cacheError) {
+      console.error("Cache check error:", cacheError);
+      // Continue with AI processing if cache fails
+    }
+
+    // Only call AI if we don't have cached result
+    if (!cacheHit) {
+      try {
+        console.log("Preparing to call Together AI API...");
+        console.log("API Key exists:", !!process.env.TOGETHER_API_KEY);
+        console.log(
+          "Extracted text preview:",
+          extractedText.substring(0, 200) + "..."
+        );
+        console.log("Using AI Model:", AI_MODEL);
+
+        const response = await fetch(
+          "https://api.together.xyz/v1/chat/completions",
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${process.env.TOGETHER_API_KEY}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              model: AI_MODEL, // Usando a variável configurável
+              messages: [
+                {
+                  role: "system",
+                  content: `You are a highly experienced and cautious medical doctor. Your task is to interpret a patient's medical report and present the information in clear, compassionate, and accurate language.
 
 ### Rules:
 - NEVER invent, assume, or guess values. Only use data explicitly present in the document.
@@ -114,11 +152,11 @@ export async function POST(request: NextRequest) {
 - Be kind, but precise. Avoid alarming language. Use "we" and "let's" to be supportive.
 - Flag urgent issues clearly, but calmly.
 - Respond ONLY with the JSON object. Do not include any other text, explanations, or formatting.`,
-              },
-              {
-                role: "user",
-                content:
-                  `Analyze the following medical report and return ONLY a valid JSON object with the exact structure specified below. DO NOT include any explanations, thoughts, or additional text. Return only the JSON.
+                },
+                {
+                  role: "user",
+                  content:
+                    `Analyze the following medical report and return ONLY a valid JSON object with the exact structure specified below. DO NOT include any explanations, thoughts, or additional text. Return only the JSON.
 
 ### Required JSON Structure:
 {
@@ -150,80 +188,92 @@ export async function POST(request: NextRequest) {
 ### Medical Report:
 ${extractedText}
               `.trim(),
-              },
-            ],
-            temperature: 0.7,
-            max_tokens: 2000,
-          }),
-        }
-      );
-
-      console.log("Together AI API Response Status:", response.status);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Together AI API Error Response:", errorText);
-        throw new Error(
-          `Together AI API error: ${response.status} - ${errorText}`
+                },
+              ],
+              temperature: 0.7,
+              max_tokens: 2000,
+            }),
+          }
         );
-      }
 
-      const aiResponse = await response.json();
-      console.log("Together AI API Success Response received");
+        console.log("Together AI API Response Status:", response.status);
 
-      const jsonString = aiResponse.choices[0].message.content.trim();
-      console.log(
-        "AI Response content preview:",
-        jsonString.substring(0, 200) + "..."
-      );
-
-      // Limpar a string JSON removendo crases, tags e outros caracteres indesejados
-      let cleanJsonString = jsonString;
-
-      // Remover crases markdown que envolvem o JSON
-      if (cleanJsonString.startsWith("```")) {
-        cleanJsonString = cleanJsonString.replace(
-          /^```(?:json)?\s*([\s\S]*?)\s*```$/,
-          "$1"
-        );
-      }
-
-      // Remover possíveis tags de pensamento
-      if (
-        cleanJsonString.startsWith("<think>") ||
-        cleanJsonString.includes("<think>")
-      ) {
-        // Tentar extrair apenas o JSON
-        const jsonMatch = cleanJsonString.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          cleanJsonString = jsonMatch[0];
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("Together AI API Error Response:", errorText);
+          throw new Error(
+            `Together AI API error: ${response.status} - ${errorText}`
+          );
         }
-      }
 
-      // Trim final para garantir que não há espaços extras
-      cleanJsonString = cleanJsonString.trim();
+        const aiResponse = await response.json();
+        console.log("Together AI API Success Response received");
 
-      // Tentar parsear o JSON retornado
-      try {
-        analyzedData = JSON.parse(cleanJsonString);
-        console.log("JSON parsed successfully");
-      } catch (parseError) {
-        console.error("JSON parse error:", parseError);
-        console.error("Problematic JSON string:", cleanJsonString);
+        const jsonString = aiResponse.choices[0].message.content.trim();
+        console.log(
+          "AI Response content preview:",
+          jsonString.substring(0, 200) + "..."
+        );
+
+        // Limpar a string JSON removendo crases, tags e outros caracteres indesejados
+        let cleanJsonString = jsonString;
+
+        // Remover crases markdown que envolvem o JSON
+        if (cleanJsonString.startsWith("```")) {
+          cleanJsonString = cleanJsonString.replace(
+            /^```(?:json)?\s*([\s\S]*?)\s*```$/,
+            "$1"
+          );
+        }
+
+        // Remover possíveis tags de pensamento
+        if (
+          cleanJsonString.startsWith("<think>") ||
+          cleanJsonString.includes("<think>")
+        ) {
+          // Tentar extrair apenas o JSON
+          const jsonMatch = cleanJsonString.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            cleanJsonString = jsonMatch[0];
+          }
+        }
+
+        // Trim final para garantir que não há espaços extras
+        cleanJsonString = cleanJsonString.trim();
+
+        // Tentar parsear o JSON retornado
+        try {
+          analyzedData = JSON.parse(cleanJsonString);
+          console.log("JSON parsed successfully");
+        } catch (parseError) {
+          console.error("JSON parse error:", parseError);
+          console.error("Problematic JSON string:", cleanJsonString);
+          analyzedData = {
+            error: "Failed to parse AI response as JSON",
+            rawResponse: cleanJsonString,
+          };
+        }
+
+        // Cache the successful result
+        if (analyzedData && !analyzedData.error) {
+          try {
+            await redis.set(cacheKey, analyzedData, { ex: CACHE_TTL });
+            console.log("Result cached successfully for 7 days");
+          } catch (cacheError) {
+            console.error("Failed to cache result:", cacheError);
+            // Don't fail the request if caching fails
+          }
+        }
+      } catch (aiError: unknown) {
+        console.error("AI Analysis Error:", aiError);
+        const errorMessage =
+          aiError instanceof Error ? aiError.message : "Unknown AI error";
         analyzedData = {
-          error: "Failed to parse AI response as JSON",
-          rawResponse: cleanJsonString,
+          error: "Failed to analyze with AI",
+          details: errorMessage,
         };
       }
-    } catch (aiError: unknown) {
-      console.error("AI Analysis Error:", aiError);
-      const errorMessage =
-        aiError instanceof Error ? aiError.message : "Unknown AI error";
-      analyzedData = {
-        error: "Failed to analyze with AI",
-        details: errorMessage,
-      };
-    }
+    } // Close the if (!cacheHit) block
 
     console.log("=== Process Completed Successfully ===");
 
